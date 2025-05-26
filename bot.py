@@ -47,9 +47,9 @@ daily_api_key = os.getenv("DAILY_API_KEY", "")
 daily_api_url = os.getenv("DAILY_API_URL", "https://api.daily.co/v1")
 BOOKING_SERVICE_URL = os.getenv("BOOKING_SERVICE_URL", "http://localhost:5000/trigger-prompt")
 
-async def fetch_weather_from_api(params: FunctionCallParams):
-    await params.llm.push_frame(TTSSpeakFrame("Let me check on that."))
-    await params.result_callback({"conditions": "nice", "temperature": "75"})
+# async def fetch_weather_from_api(params: FunctionCallParams):
+#     await params.llm.push_frame(TTSSpeakFrame("Let me check on that."))
+#     await params.result_callback({"conditions": "nice", "temperature": "75"})
 
 async def booking_service(params: FunctionCallParams):
     """Handle booking requests by sending to the booking service"""
@@ -106,24 +106,24 @@ async def main(room_url: str, token: str):
     )
 
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o")
-    llm.register_function("get_current_weather", fetch_weather_from_api)
-    weather_function = FunctionSchema(
-        name="get_current_weather",
-        description="Get the current weather",
-        properties={
-            "location": {
-                "type": "string",
-                "description": "The city and state, e.g. San Francisco, CA",
-            },
-            "format": {
-                "type": "string",
-                "enum": ["celsius", "fahrenheit"],
-                "description": "The temperature unit to use. Infer this from the user's location.",
-            },
-        },
-        required=["location", "format"],
-    )
-    tools = ToolsSchema(standard_tools=[weather_function])
+    llm.register_function("get_current_weather")
+    # weather_function = FunctionSchema(
+    #     name="get_current_weather",
+    #     description="Get the current weather",
+    #     properties={
+    #         "location": {
+    #             "type": "string",
+    #             "description": "The city and state, e.g. San Francisco, CA",
+    #         },
+    #         "format": {
+    #             "type": "string",
+    #             "enum": ["celsius", "fahrenheit"],
+    #             "description": "The temperature unit to use. Infer this from the user's location.",
+    #         },
+    #     },
+    #     required=["location", "format"],
+    # )
+    # tools = ToolsSchema(standard_tools=[weather_function])
 
     llm.register_function("booking_service", booking_service)
     booking_function = FunctionSchema(
@@ -137,7 +137,7 @@ async def main(room_url: str, token: str):
         },
         required=["user_message"],
     )
-    tools = ToolsSchema(standard_tools=[weather_function, booking_function])
+    tools = ToolsSchema(standard_tools=[ booking_function])
     messages = [
         {
             "role": "system",
