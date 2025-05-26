@@ -4,11 +4,11 @@ import sys
 import argparse
 import json
 import  base64
-
+import requests
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.services.azure import AzureLLMService, AzureSTTService, AzureTTSService, Language
 from pipecat.adapters.schemas.tools_schema import ToolsSchema
-from pipecat.frames.frames import TTSSpeakFrame
+from pipecat.frames.frames import TTSSpeakFrame, EndFrame, EndTaskFrame
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
@@ -45,10 +45,37 @@ logger.add(sys.stderr, level="DEBUG")
 
 daily_api_key = os.getenv("DAILY_API_KEY", "")
 daily_api_url = os.getenv("DAILY_API_URL", "https://api.daily.co/v1")
+BOOKING_SERVICE_URL = os.getenv("BOOKING_SERVICE_URL", "http://localhost:5000/trigger-prompt")
 
 async def fetch_weather_from_api(params: FunctionCallParams):
     await params.llm.push_frame(TTSSpeakFrame("Let me check on that."))
     await params.result_callback({"conditions": "nice", "temperature": "75"})
+
+async def booking_service(params: FunctionCallParams):
+    """Handle booking requests by sending to the booking service"""
+    await params.llm.push_frame(TTSSpeakFrame("Let me help you with that booking by transferring your request to our booking service."))
+    try:
+        logger.info(f"Received booking request: {params.arguments}")
+        logger.info(f"The user message received in the booking service function is: {params.arguments['user_message']}")
+        payload = {
+            "user_message": f"{params.arguments['user_message']}",
+            # "service_type": service_type,
+            "source": "voice_bot",
+            # "user_message": user_message
+            "status": True,
+        }
+        
+        response = requests.post(BOOKING_SERVICE_URL, json=payload, timeout=5)
+        logger.info(f"Sent booking request to service: {response.status_code}")
+        await params.llm.queue_frame(EndTaskFrame(), FrameDirection.UPSTREAM)
+        await params.result_callback("Goodbye")
+        return response.status_code == 200
+        
+    except Exception as e:
+        logger.error(f"Error sending to booking service: {e}")
+        return False
+
+
 
 
 async def main(room_url: str, token: str):
@@ -74,7 +101,7 @@ async def main(room_url: str, token: str):
     tts_service = AzureTTSService(
         api_key=os.getenv("AZURE_API_KEY"),
         region=os.getenv("AZURE_REGION"),
-         voice=os.getenv("AZURE_VOICE_ID"),
+        voice=os.getenv("AZURE_VOICE_ID"),
 
     )
 
@@ -97,6 +124,20 @@ async def main(room_url: str, token: str):
         required=["location", "format"],
     )
     tools = ToolsSchema(standard_tools=[weather_function])
+
+    llm.register_function("booking_service", booking_service)
+    booking_function = FunctionSchema(
+        name="booking_service",
+        description="Handle booking requests by sending to the booking service",
+        properties={
+            "user_message": {
+                "type": "string",
+                "description": "The user's message or request for booking assistance, for example, 'I have a meeting in Delhi on 21st may, can you book me a one way flight from mumbai.'",
+            }            
+        },
+        required=["user_message"],
+    )
+    tools = ToolsSchema(standard_tools=[weather_function, booking_function])
     messages = [
         {
             "role": "system",
