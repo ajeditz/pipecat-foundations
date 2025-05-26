@@ -106,7 +106,7 @@ async def main(room_url: str, token: str):
     )
 
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o")
-    llm.register_function("get_current_weather")
+    # llm.register_function("get_current_weather")
     # weather_function = FunctionSchema(
     #     name="get_current_weather",
     #     description="Get the current weather",
