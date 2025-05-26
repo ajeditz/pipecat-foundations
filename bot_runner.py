@@ -42,10 +42,10 @@ REQUIRED_ENV_VARS = [
 
 ]
  
-FLY_API_HOST = os.getenv("FLY_API_HOST", "https://api.machines.dev/v1")
-FLY_APP_NAME = os.getenv("FLY_APP_NAME", "pipecat-fly-example")
-FLY_API_KEY = os.getenv("FLY_API_KEY", "")
-FLY_HEADERS = {"Authorization": f"Bearer {FLY_API_KEY}", "Content-Type": "application/json"}
+# FLY_API_HOST = os.getenv("FLY_API_HOST", "https://api.machines.dev/v1")
+# FLY_APP_NAME = os.getenv("FLY_APP_NAME", "pipecat-fly-example")
+# FLY_API_KEY = os.getenv("FLY_API_KEY", "")
+# FLY_HEADERS = {"Authorization": f"Bearer {FLY_API_KEY}", "Content-Type": "application/json"}
  
 bot_procs={}
  
@@ -104,56 +104,56 @@ def start_bot_process(room_url: str, token: str):
     )
     return bot_process 
  
-async def spawn_fly_machine(room_url: str, token: str):
-    async with aiohttp.ClientSession() as session:
-        # Use the same image as the bot runner
-        async with session.get(
-            f"{FLY_API_HOST}/apps/{FLY_APP_NAME}/machines", headers=FLY_HEADERS
-        ) as r:
-            if r.status != 200:
-                text = await r.text()
-                raise Exception(f"Unable to get machine info from Fly: {text}")
+# async def spawn_fly_machine(room_url: str, token: str):
+#     async with aiohttp.ClientSession() as session:
+#         # Use the same image as the bot runner
+#         async with session.get(
+#             f"{FLY_API_HOST}/apps/{FLY_APP_NAME}/machines", headers=FLY_HEADERS
+#         ) as r:
+#             if r.status != 200:
+#                 text = await r.text()
+#                 raise Exception(f"Unable to get machine info from Fly: {text}")
  
-            data = await r.json()
-            image = data[0]["config"]["image"]
+#             data = await r.json()
+#             image = data[0]["config"]["image"]
  
-        # config_str = json.dumps(config.model_dump())
-        # config_b64 = base64.b64encode(config_str.encode()).decode()
+#         # config_str = json.dumps(config.model_dump())
+#         # config_b64 = base64.b64encode(config_str.encode()).decode()
  
-        # Machine configuration
-        cmd = f"python3 bot.py -u {room_url} -t {token}"
-        cmd = cmd.split()
-        worker_props = {
-            "config": {
-                "image": image,
-                "auto_destroy": True,
-                "init": {"cmd": cmd},
-                "restart": {"policy": "no"},
-                "guest": {"cpu_kind": "shared", "cpus": 1, "memory_mb": 1024},
-            },
-        }
+#         # Machine configuration
+#         cmd = f"python3 bot.py -u {room_url} -t {token}"
+#         cmd = cmd.split()
+#         worker_props = {
+#             "config": {
+#                 "image": image,
+#                 "auto_destroy": True,
+#                 "init": {"cmd": cmd},
+#                 "restart": {"policy": "no"},
+#                 "guest": {"cpu_kind": "shared", "cpus": 1, "memory_mb": 1024},
+#             },
+#         }
  
-        # Spawn a new machine instance
-        async with session.post(
-            f"{FLY_API_HOST}/apps/{FLY_APP_NAME}/machines", headers=FLY_HEADERS, json=worker_props
-        ) as r:
-            if r.status != 200:
-                text = await r.text()
-                raise Exception(f"Problem starting a bot worker: {text}")
+#         # Spawn a new machine instance
+#         async with session.post(
+#             f"{FLY_API_HOST}/apps/{FLY_APP_NAME}/machines", headers=FLY_HEADERS, json=worker_props
+#         ) as r:
+#             if r.status != 200:
+#                 text = await r.text()
+#                 raise Exception(f"Problem starting a bot worker: {text}")
  
-            data = await r.json()
-            # Wait for the machine to enter the started state
-            vm_id = data["id"]
+#             data = await r.json()
+#             # Wait for the machine to enter the started state
+#             vm_id = data["id"]
  
-        async with session.get(
-            f"{FLY_API_HOST}/apps/{FLY_APP_NAME}/machines/{vm_id}/wait?state=started",
-            headers=FLY_HEADERS,
-        ) as r:
-            if r.status != 200:
-                text = await r.text()
-                raise Exception(f"Bot was unable to enter started state: {text}")
+#         async with session.get(
+#             f"{FLY_API_HOST}/apps/{FLY_APP_NAME}/machines/{vm_id}/wait?state=started",
+#             headers=FLY_HEADERS,
+#         ) as r:
+#             if r.status != 200:
+#                 text = await r.text()
+#                 raise Exception(f"Bot was unable to enter started state: {text}")
  
-    print(f"Machine joined room: {room_url}")
+#     print(f"Machine joined room: {room_url}")
  
  
 @app.post("/")
